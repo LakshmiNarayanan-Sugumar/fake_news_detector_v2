@@ -13,8 +13,8 @@ st.set_page_config(
 # Load model from HuggingFace Hub
 @st.cache_resource
 def load_model():
-    tokenizer = AutoTokenizer.from_pretrained("LakshmiNarayanan-sugumar/fake-news-bert")
-    model = AutoModelForSequenceClassification.from_pretrained("LakshmiNarayanan-sugumar/fake-news-bert")
+    tokenizer = AutoTokenizer.from_pretrained("LakshmiNarayanan-sugumar/fake-news-bert-debiased")
+    model = AutoModelForSequenceClassification.from_pretrained("LakshmiNarayanan-sugumar/fake-news-bert-debiased")
     model.eval()
     return tokenizer, model
 
@@ -22,8 +22,13 @@ tokenizer, model = load_model()
 
 # UI
 st.title("Fake News Detector V2")
-st.markdown("Powered by BERT fine-tuned on WELFake dataset (71,537 articles) — 99.55% accuracy")
-
+st.markdown("Powered by BERT fine-tuned on a cleaned WELFake dataset (62,200 articles) — 99.49% test accuracy")
+st.markdown(
+    "This version fixes a shortcut-learning bug found during evaluation (the model had learned to "
+    "associate the word 'Reuters' with real news). Full diagnosis and before/after results are documented "
+    "in the [model card](https://huggingface.co/LakshmiNarayanan-sugumar/fake-news-bert-debiased). "
+    "**Known limitation:** the model still struggles with satire and dry-toned hoaxes — see model card for details."
+)
 st.markdown("---")
 
 news_input = st.text_area("Paste a news article or headline below:", height=200, placeholder="Enter news text here...")
@@ -41,7 +46,7 @@ if st.button("Analyze", use_container_width=True):
             )
             with torch.no_grad():
                 outputs = model(**inputs)
-            
+
             probs = F.softmax(outputs.logits, dim=-1)
             pred = torch.argmax(probs, dim=-1).item()
             confidence = probs[0][pred].item() * 100
